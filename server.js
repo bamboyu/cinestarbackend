@@ -23,6 +23,8 @@ app.use("/api/auth", require("./routes/auth")); // Customers
 app.use("/api/theaters", require("./routes/theaters")); // Theaters
 app.use("/api/showtimes", require("./routes/showtimes")); // Showtimes
 app.use("/api/rooms", require("./routes/screeningRooms"));
+app.use("/api/movies", require("./routes/movies"));
+app.use("/api/categories", require("./routes/movieCategories"));
 
 // ... app.listen
 const PORT = process.env.PORT || 5000;
