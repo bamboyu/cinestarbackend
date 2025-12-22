@@ -8,6 +8,18 @@ const Administrator = require("../models/Administrator"); // Import Admin Model
 // 1. CUSTOMER AUTHENTICATION
 // ==========================================
 
+// @route   GET /api/auth/users
+// @desc    Get all registered customers (Admin only)
+router.get("/users", async (req, res) => {
+  try {
+    // Return all users, but exclude the password field
+    const users = await Customer.find().select("-password");
+    res.json(users);
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+});
+
 // @route   POST /api/auth/register
 router.post("/register", async (req, res) => {
   const { fullName, email, password, phoneNumber, address } = req.body;
@@ -39,16 +51,17 @@ router.post("/login", async (req, res) => {
 
     // --- ĐÃ SỬA: LOGIC CẤP QUYỀN ADMIN ---
     // Nếu email là của bạn thì set role = "admin", người khác là "customer"
-    const userRole = (user.email === "tranquocdai06@gmail.com") ? "admin" : "customer";
+    const userRole =
+      user.email === "tranquocdai06@gmail.com" ? "admin" : "customer";
 
     res.json({
       msg: "Login successful",
-      role: userRole,            // <--- Sử dụng biến này thay vì hardcode "customer"
+      role: userRole, // <--- Sử dụng biến này thay vì hardcode "customer"
       userId: user._id,
       name: user.fullName,
-      email: user.email,         
-      phoneNumber: user.phoneNumber || "", 
-      address: user.address || ""          
+      email: user.email,
+      phoneNumber: user.phoneNumber || "",
+      address: user.address || "",
     });
   } catch (err) {
     res.status(500).send("Server error");
@@ -73,7 +86,8 @@ router.put("/update/:id", async (req, res) => {
     }
 
     // --- ĐÃ SỬA: Đảm bảo khi cập nhật xong vẫn giữ role đúng ---
-    const userRole = (updatedUser.email === "tranquocdai06@gmail.com") ? "admin" : "customer";
+    const userRole =
+      updatedUser.email === "tranquocdai06@gmail.com" ? "admin" : "customer";
 
     res.json({
       msg: "Cập nhật thành công!",
@@ -83,15 +97,14 @@ router.put("/update/:id", async (req, res) => {
         email: updatedUser.email,
         phoneNumber: updatedUser.phoneNumber || "",
         address: updatedUser.address || "",
-        role: userRole // <--- Trả về role đúng sau khi update
-      }
+        role: userRole, // <--- Trả về role đúng sau khi update
+      },
     });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");
   }
 });
-
 
 // ==========================================
 // 2. ADMINISTRATOR AUTHENTICATION
@@ -129,7 +142,7 @@ router.post("/admin/login", async (req, res) => {
 router.post("/admin/seed", async (req, res) => {
   try {
     const email = "admin@cinema.com";
-    const password = "admin123"; 
+    const password = "admin123";
 
     let admin = await Administrator.findOne({ email });
     if (admin)
