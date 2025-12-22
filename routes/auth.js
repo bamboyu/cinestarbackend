@@ -37,15 +37,18 @@ router.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: "Invalid Credentials" });
 
-    // --- ĐÃ SỬA: Trả về đầy đủ thông tin để hiển thị ở Frontend ---
+    // --- ĐÃ SỬA: LOGIC CẤP QUYỀN ADMIN ---
+    // Nếu email là của bạn thì set role = "admin", người khác là "customer"
+    const userRole = (user.email === "tranquocdai06@gmail.com") ? "admin" : "customer";
+
     res.json({
       msg: "Login successful",
-      role: "customer",
+      role: userRole,            // <--- Sử dụng biến này thay vì hardcode "customer"
       userId: user._id,
       name: user.fullName,
-      email: user.email,                 // Thêm email
-      phoneNumber: user.phoneNumber || "", // Thêm sđt (nếu null thì trả về chuỗi rỗng)
-      address: user.address || ""          // Thêm địa chỉ
+      email: user.email,         
+      phoneNumber: user.phoneNumber || "", 
+      address: user.address || ""          
     });
   } catch (err) {
     res.status(500).send("Server error");
@@ -54,24 +57,24 @@ router.post("/login", async (req, res) => {
 
 // @route   PUT /api/auth/update/:id
 // @desc    Cập nhật thông tin cá nhân Customer
-// --- ĐÃ THÊM MỚI ĐOẠN NÀY ---
 router.put("/update/:id", async (req, res) => {
   const { fullName, phoneNumber, address } = req.body;
 
   try {
     // Tìm user theo ID và cập nhật thông tin mới
-    // { new: true } để trả về dữ liệu sau khi đã sửa
     const updatedUser = await Customer.findByIdAndUpdate(
       req.params.id,
       { fullName, phoneNumber, address },
       { new: true }
-    ).select("-password"); // Không trả về mật khẩu
+    ).select("-password");
 
     if (!updatedUser) {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    // Trả về dữ liệu user mới nhất cho Frontend
+    // --- ĐÃ SỬA: Đảm bảo khi cập nhật xong vẫn giữ role đúng ---
+    const userRole = (updatedUser.email === "tranquocdai06@gmail.com") ? "admin" : "customer";
+
     res.json({
       msg: "Cập nhật thành công!",
       user: {
@@ -80,7 +83,7 @@ router.put("/update/:id", async (req, res) => {
         email: updatedUser.email,
         phoneNumber: updatedUser.phoneNumber || "",
         address: updatedUser.address || "",
-        role: "customer"
+        role: userRole // <--- Trả về role đúng sau khi update
       }
     });
   } catch (err) {
@@ -93,26 +96,23 @@ router.put("/update/:id", async (req, res) => {
 // ==========================================
 // 2. ADMINISTRATOR AUTHENTICATION
 // ==========================================
+// (Phần dưới này giữ nguyên cho Admin hệ thống thật)
 
 // @route   POST /api/auth/admin/login
-// @desc    Separate Login for Admins
 router.post("/admin/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // 1. Check if Admin exists in the ADMINISTRATOR collection
     const admin = await Administrator.findOne({ email });
     if (!admin) {
       return res.status(400).json({ msg: "Access Denied: Not an Admin" });
     }
 
-    // 2. Validate Password
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
       return res.status(400).json({ msg: "Invalid Admin Credentials" });
     }
 
-    // 3. Return Admin Data
     res.json({
       msg: "Admin Login Successful",
       role: "admin",
@@ -126,13 +126,11 @@ router.post("/admin/login", async (req, res) => {
 });
 
 // @route   POST /api/auth/admin/seed
-// @desc    Run this ONCE to create your test admin
 router.post("/admin/seed", async (req, res) => {
   try {
     const email = "admin@cinema.com";
-    const password = "admin123"; // The password you want to use
+    const password = "admin123"; 
 
-    // Check if seed already exists
     let admin = await Administrator.findOne({ email });
     if (admin)
       return res.status(400).json({ msg: "Test admin already exists" });
@@ -144,7 +142,6 @@ router.post("/admin/seed", async (req, res) => {
       role: "SuperAdmin",
     });
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     admin.password = await bcrypt.hash(password, salt);
 
