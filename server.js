@@ -22,7 +22,9 @@ mongoose
 app.use("/api/auth", require("./routes/auth")); // Customers
 app.use("/api/theaters", require("./routes/theaters")); // Theaters
 app.use("/api/showtimes", require("./routes/showtimes")); // Showtimes
+app.use("/api/rooms", require("./routes/screeningRooms"));
 
+// ... app.listen
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
