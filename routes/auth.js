@@ -37,16 +37,58 @@ router.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: "Invalid Credentials" });
 
+    // --- ĐÃ SỬA: Trả về đầy đủ thông tin để hiển thị ở Frontend ---
     res.json({
       msg: "Login successful",
       role: "customer",
       userId: user._id,
       name: user.fullName,
+      email: user.email,                 // Thêm email
+      phoneNumber: user.phoneNumber || "", // Thêm sđt (nếu null thì trả về chuỗi rỗng)
+      address: user.address || ""          // Thêm địa chỉ
     });
   } catch (err) {
     res.status(500).send("Server error");
   }
 });
+
+// @route   PUT /api/auth/update/:id
+// @desc    Cập nhật thông tin cá nhân Customer
+// --- ĐÃ THÊM MỚI ĐOẠN NÀY ---
+router.put("/update/:id", async (req, res) => {
+  const { fullName, phoneNumber, address } = req.body;
+
+  try {
+    // Tìm user theo ID và cập nhật thông tin mới
+    // { new: true } để trả về dữ liệu sau khi đã sửa
+    const updatedUser = await Customer.findByIdAndUpdate(
+      req.params.id,
+      { fullName, phoneNumber, address },
+      { new: true }
+    ).select("-password"); // Không trả về mật khẩu
+
+    if (!updatedUser) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // Trả về dữ liệu user mới nhất cho Frontend
+    res.json({
+      msg: "Cập nhật thành công!",
+      user: {
+        userId: updatedUser._id,
+        name: updatedUser.fullName,
+        email: updatedUser.email,
+        phoneNumber: updatedUser.phoneNumber || "",
+        address: updatedUser.address || "",
+        role: "customer"
+      }
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+});
+
 
 // ==========================================
 // 2. ADMINISTRATOR AUTHENTICATION
