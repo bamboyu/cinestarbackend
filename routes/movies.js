@@ -3,13 +3,35 @@ const router = express.Router();
 const Movie = require("../models/Movie");
 
 // @route   GET /api/movies
-// @desc    Get all movies (Populate category name)
+// @desc    Get all movies (Support Search by Title or Description)
 router.get("/", async (req, res) => {
   try {
-    const movies = await Movie.find().populate(
+    // --- BẮT ĐẦU PHẦN SỬA ---
+    // 1. Lấy từ khóa search từ URL (ví dụ: ?search=Kungfu)
+    const { search } = req.query;
+
+    // 2. Tạo điều kiện tìm kiếm mặc định là rỗng (lấy hết)
+    let queryCondition = {};
+
+    // 3. Nếu có từ khóa search, tạo bộ lọc
+    if (search) {
+      queryCondition = {
+        $or: [
+          // Tìm trong Title (không phân biệt hoa thường - 'i')
+          { title: { $regex: search, $options: "i" } },
+          // Tìm luôn trong Description (nếu muốn)
+          { description: { $regex: search, $options: "i" } },
+        ],
+      };
+    }
+
+    // 4. Truyền điều kiện vào hàm find()
+    const movies = await Movie.find(queryCondition).populate(
       "moviecategoryID",
       "categoryName"
     );
+    // --- KẾT THÚC PHẦN SỬA ---
+
     res.json(movies);
   } catch (err) {
     console.error(err.message);
