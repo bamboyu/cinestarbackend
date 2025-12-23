@@ -5,7 +5,7 @@ const Customer = require("../models/Customer");
 const Administrator = require("../models/Administrator"); // Import Admin Model
 
 // ==========================================
-// 1. CUSTOMER AUTHENTICATION
+// 1. CUSTOMER AUTHENTICATION & MANAGEMENT
 // ==========================================
 
 // @route   GET /api/auth/users
@@ -49,14 +49,13 @@ router.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: "Invalid Credentials" });
 
-    // --- ĐÃ SỬA: LOGIC CẤP QUYỀN ADMIN ---
-    // Nếu email là của bạn thì set role = "admin", người khác là "customer"
+    // Logic cấp quyền Admin hardcode (như bạn yêu cầu)
     const userRole =
       user.email === "tranquocdai06@gmail.com" ? "admin" : "customer";
 
     res.json({
       msg: "Login successful",
-      role: userRole, // <--- Sử dụng biến này thay vì hardcode "customer"
+      role: userRole,
       userId: user._id,
       name: user.fullName,
       email: user.email,
@@ -69,12 +68,12 @@ router.post("/login", async (req, res) => {
 });
 
 // @route   PUT /api/auth/update/:id
-// @desc    Cập nhật thông tin cá nhân Customer
+// @desc    Cập nhật thông tin cá nhân Customer (Dùng cho cả Admin sửa User)
+// (Code này ĐÃ CÓ trong file cũ của bạn, mình giữ nguyên)
 router.put("/update/:id", async (req, res) => {
   const { fullName, phoneNumber, address } = req.body;
 
   try {
-    // Tìm user theo ID và cập nhật thông tin mới
     const updatedUser = await Customer.findByIdAndUpdate(
       req.params.id,
       { fullName, phoneNumber, address },
@@ -85,7 +84,6 @@ router.put("/update/:id", async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    // --- ĐÃ SỬA: Đảm bảo khi cập nhật xong vẫn giữ role đúng ---
     const userRole =
       updatedUser.email === "tranquocdai06@gmail.com" ? "admin" : "customer";
 
@@ -97,7 +95,7 @@ router.put("/update/:id", async (req, res) => {
         email: updatedUser.email,
         phoneNumber: updatedUser.phoneNumber || "",
         address: updatedUser.address || "",
-        role: userRole, // <--- Trả về role đúng sau khi update
+        role: userRole,
       },
     });
   } catch (err) {
@@ -106,10 +104,26 @@ router.put("/update/:id", async (req, res) => {
   }
 });
 
+// @route   DELETE /api/auth/users/:id
+// @desc    Delete a customer (MỚI THÊM: Để Admin có thể xóa user)
+router.delete("/users/:id", async (req, res) => {
+  try {
+    const user = await Customer.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    await Customer.findByIdAndDelete(req.params.id);
+    res.json({ msg: "User removed" });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
 // ==========================================
 // 2. ADMINISTRATOR AUTHENTICATION
 // ==========================================
-// (Phần dưới này giữ nguyên cho Admin hệ thống thật)
 
 // @route   POST /api/auth/admin/login
 router.post("/admin/login", async (req, res) => {
